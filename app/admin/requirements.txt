@@ -1,0 +1,28 @@
+# Web framework
+Flask>=3.0,<4.0
+gunicorn>=21.2
+
+# Templates & forms
+Jinja2>=3.1
+Flask-WTF>=1.2
+WTForms>=3.1
+
+# Database
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+
+# Migrations
+alembic>=1.13
+
+# Auth (LDAP / headers / future OIDC)
+Authlib>=1.3
+ldap3>=2.9
+
+# HTTP client (AWX API)
+requests>=2.31
+
+# Logging
+python-json-logger>=2.0
+
+# Security
+cryptography>=42.0

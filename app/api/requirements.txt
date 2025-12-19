@@ -1,0 +1,26 @@
+# Web framework
+Flask>=3.0,<4.0
+gunicorn>=21.2
+
+# Database
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+
+# Migrations
+alembic>=1.13
+
+# Auth / OAuth / Tokens
+Authlib>=1.3
+PyJWT>=2.8
+
+# Validation
+pydantic>=2.6
+
+# HTTP client
+requests>=2.31
+
+# Logging
+python-json-logger>=2.0
+
+# Security / utils
+cryptography>=42.0
