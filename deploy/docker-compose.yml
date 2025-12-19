@@ -1,0 +1,113 @@
+version: "3.9"
+
+name: awx-proxy
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres_data:
+
+services:
+  ########################################
+  # Reverse proxy (ONLY public entrypoint)
+  ########################################
+  reverse-proxy:
+    image: garnser/awx-proxy-nginx:${VERSION:-latest}
+    build:
+      context: ./reverse-proxy
+      args:
+        VERSION: ${VERSION}
+        GIT_SHA: ${GIT_SHA}
+        BUILD_DATE: ${BUILD_DATE}
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    networks:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  ########################################
+  # Main external API
+  ########################################
+  api:
+    image: garnser/awx-proxy-api:${VERSION:-latest}
+    build:
+      context: ../app/api
+      args:
+        VERSION: ${VERSION}
+        GIT_SHA: ${GIT_SHA}
+        BUILD_DATE: ${BUILD_DATE}
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: api
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    restart: unless-stopped
+
+  ########################################
+  # Admin interface (internal only)
+  ########################################
+  admin:
+    image: garnser/awx-proxy-admin:${VERSION:-latest}
+    build:
+      context: ../app/admin
+      args:
+        VERSION: ${VERSION}
+        GIT_SHA: ${GIT_SHA}
+        BUILD_DATE: ${BUILD_DATE}
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: admin
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    restart: unless-stopped
+
+  ########################################
+  # Executor (internal only)
+  ########################################
+  executor:
+    image: garnser/awx-proxy-executor:${VERSION:-latest}
+    build:
+      context: ../app/executor
+      args:
+        VERSION: ${VERSION}
+        GIT_SHA: ${GIT_SHA}
+        BUILD_DATE: ${BUILD_DATE}
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: executor
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    restart: unless-stopped
+
+  ########################################
+  # PostgreSQL
+  ########################################
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: awx_proxy
+      POSTGRES_USER: awx_proxy
+      POSTGRES_PASSWORD: awx_proxy
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    restart: unless-stopped

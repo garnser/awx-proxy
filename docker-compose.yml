@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  api:
+    image: garnser/awx-proxy-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://awx_proxy:awx_proxy@postgres:5432/awx_proxy
+      AWX_BASE_URL: https://awx.example
+      AWX_TOKEN: changeme
+    depends_on:
+      - postgres
+
+  admin:
+    image: garnser/awx-proxy-admin:latest
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://awx_proxy:awx_proxy@postgres:5432/awx_proxy
+    depends_on:
+      - postgres
+
+  executor:
+    image: garnser/awx-proxy-executor:latest
+    environment:
+      DATABASE_URL: postgresql+psycopg2://awx_proxy:awx_proxy@postgres:5432/awx_proxy
+      AWX_BASE_URL: https://awx.example
+      AWX_TOKEN: changeme
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: awx_proxy
+      POSTGRES_USER: awx_proxy
+      POSTGRES_PASSWORD: awx_proxy
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
