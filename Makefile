@@ -9,9 +9,10 @@ GIT_SHA := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # ==========================================
-# Compose
+# Paths
 # ==========================================
 COMPOSE_FILE := deploy/docker-compose.yml
+ENV_FILE := deploy/.env
 
 # ==========================================
 # Docker images
@@ -21,12 +22,22 @@ ADMIN_IMAGE := $(REGISTRY)/$(PROJECT_NAME)-admin
 EXECUTOR_IMAGE := $(REGISTRY)/$(PROJECT_NAME)-executor
 NGINX_IMAGE := $(REGISTRY)/$(PROJECT_NAME)-nginx
 
-# OCI labels (applied to all images)
+# OCI labels
 DOCKER_LABELS := \
 	--label org.opencontainers.image.title=$(PROJECT_NAME) \
 	--label org.opencontainers.image.version=$(VERSION) \
 	--label org.opencontainers.image.revision=$(GIT_SHA) \
 	--label org.opencontainers.image.created=$(BUILD_DATE)
+
+# ==========================================
+# Internal helper
+# ==========================================
+define compose
+	VERSION=$(VERSION) \
+	GIT_SHA=$(GIT_SHA) \
+	BUILD_DATE=$(BUILD_DATE) \
+	docker compose -f $(COMPOSE_FILE)
+endef
 
 # ==========================================
 # Help
@@ -61,6 +72,17 @@ help:
 	@echo "Info:"
 	@echo "  version            Show version info"
 	@echo ""
+
+# ==========================================
+# Sanity checks
+# ==========================================
+.PHONY: check-env
+check-env:
+	@if [ ! -f "$(ENV_FILE)" ]; then \
+		echo "ERROR: $(ENV_FILE) does not exist."; \
+		echo "Run: cp deploy/.env.example deploy/.env"; \
+		exit 1; \
+	fi
 
 # ==========================================
 # Version info
@@ -153,31 +175,31 @@ push-nginx:
 release: build push
 
 # ==========================================
-# Runtime helpers
+# Runtime helpers (Compose)
 # ==========================================
 .PHONY: up down restart logs ps
 
-up:
-	docker compose -f $(COMPOSE_FILE) up -d
+up: check-env
+	$(call compose) up -d
 
 down:
-	docker compose -f $(COMPOSE_FILE) down
+	$(call compose) down
 
 restart: down up
 
 logs:
-	docker compose -f $(COMPOSE_FILE) logs -f
+	$(call compose) logs -f
 
 ps:
-	docker compose -f $(COMPOSE_FILE) ps
+	$(call compose) ps
 
 # ==========================================
 # Database
 # ==========================================
 .PHONY: migrate
 
-migrate:
-	docker compose -f $(COMPOSE_FILE) run --rm api alembic upgrade head
+migrate: check-env
+	$(call compose) run --rm api alembic upgrade head
 
 # ==========================================
 # Cleanup
@@ -185,4 +207,4 @@ migrate:
 .PHONY: clean
 
 clean:
-	docker compose -f $(COMPOSE_FILE) down -v
+	$(call compose) down -v
