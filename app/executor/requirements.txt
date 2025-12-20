@@ -1,12 +1,8 @@
-# Database
+Flask>=3.0,<4.0
+gunicorn>=21.2
+
 SQLAlchemy>=2.0
 psycopg2-binary>=2.9
-
-# HTTP client (AWX API)
 requests>=2.31
-
-# Logging
 python-json-logger>=2.0
-
-# Security / utils
 cryptography>=42.0

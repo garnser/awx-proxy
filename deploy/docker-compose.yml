@@ -14,7 +14,7 @@ volumes:
 
 services:
   ########################################
-  # Reverse proxy (ONLY public entrypoint)
+  # Reverse proxy
   ########################################
   reverse-proxy:
     image: garnser/awx-proxy-nginx:${VERSION:-latest}
@@ -28,14 +28,20 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/_nginx/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 3
     networks:
       - frontend
       - backend
     restart: unless-stopped
 
   ########################################
-  # Main external API
+  # API
   ########################################
   api:
     image: garnser/awx-proxy-api:${VERSION:-latest}
@@ -50,13 +56,19 @@ services:
     environment:
       SERVICE_NAME: api
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
     networks:
       - backend
     restart: unless-stopped
 
   ########################################
-  # Admin interface (internal only)
+  # Admin
   ########################################
   admin:
     image: garnser/awx-proxy-admin:${VERSION:-latest}
@@ -71,13 +83,19 @@ services:
     environment:
       SERVICE_NAME: admin
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
     networks:
       - backend
     restart: unless-stopped
 
   ########################################
-  # Executor (internal only)
+  # Executor
   ########################################
   executor:
     image: garnser/awx-proxy-executor:${VERSION:-latest}
@@ -92,7 +110,13 @@ services:
     environment:
       SERVICE_NAME: executor
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
     networks:
       - backend
     restart: unless-stopped
@@ -108,6 +132,11 @@ services:
       POSTGRES_PASSWORD: awx_proxy
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U awx_proxy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - backend
     restart: unless-stopped
